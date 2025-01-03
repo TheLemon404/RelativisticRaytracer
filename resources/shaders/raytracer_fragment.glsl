@@ -1,5 +1,7 @@
 #version 430
 
+#define PI 3.1415927
+
 in vec2 fragTexCoord;
 
 uniform vec3 viewParams;
@@ -342,6 +344,35 @@ float angleBetweenVectors(vec3 vecA, vec3 vecB)
 	return acos(dot(vecA, vecB) / (length(vecA) * length(vecB)));
 }
 
+bool isSingularity(Ray ray)
+{
+	for (int i = 0; i < gravityBodies.length(); i++)
+	{
+		vec3 source = gravityBodies[i].posmass.xyz;
+
+		vec3 toSourceVector = source - ray.origin;
+
+		float distance = distance(source, ray.origin);
+
+		float closestDistance = distance * sin(angleBetweenVectors(toSourceVector, ray.direction));
+		float rayLength = distance * cos(angleBetweenVectors(toSourceVector, ray.direction));
+
+		vec3 closestPoint = ray.origin + (ray.direction * rayLength);
+		vec3 closestPointToSourceVector = source - closestPoint;
+
+		vec3 changeVector = normalize(closestPointToSourceVector) * (1 / (closestDistance * closestDistance));
+
+		vec3 newRayDirection = ray.direction + changeVector;
+
+		if (angleBetweenVectors(newRayDirection, ray.direction) > 0.729548)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 Ray calculateBending(Ray ray) 
 {
 	for (int i = 0; i < gravityBodies.length(); i++)
@@ -352,9 +383,18 @@ Ray calculateBending(Ray ray)
 
 		float distance = distance(source, ray.origin);
 
-		float closestDistance = distance * tan(angleBetweenVectors(toSourceVector, ray.direction));
+		float closestDistance = distance * sin(angleBetweenVectors(toSourceVector, ray.direction));
+		float rayLength = distance * cos(angleBetweenVectors(toSourceVector, ray.direction));
 
-		if (closestDistance < 1) discard;
+		vec3 closestPoint = ray.origin + (ray.direction * rayLength);
+		vec3 closestPointToSourceVector = source - closestPoint;
+
+		vec3 changeVector = normalize(closestPointToSourceVector) * (1 / (closestDistance * closestDistance));
+
+		vec3 newRayDirection = ray.direction + changeVector;
+
+		ray.direction = newRayDirection;
+		ray.invDirection = 1 / ray.direction;
 	}
 
 	return ray;
@@ -370,6 +410,12 @@ vec3 trace(Ray ray, inout int rngState, int maxBounces)
 
 	for (int i = 0; i <= maxBounces; i++)
 	{
+		if (isSingularity(ray))
+		{
+			rayColor = vec3(0);
+			if(i == 0) discard;
+			break;
+		}
 		Ray bentRay = calculateBending(ray);
 		HitInfo hitInfo = CalculateRayCollision(bentRay, i);
 		if (hitInfo.didHit)

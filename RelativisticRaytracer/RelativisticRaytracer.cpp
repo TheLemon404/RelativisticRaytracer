@@ -27,7 +27,7 @@ int main()
 
 	TracingEngine::Initialize(Vector2(2048, 1024), 7, 10, 0.001f);
 
-	TracingEngine::skyMaterial = SkyMaterial{ WHITE, SKYBLUE, BROWN, WHITE, Vector3(-0.5f, -1, -0.5f), 1, 0.5 };
+	TracingEngine::skyMaterial = SkyMaterial{ DARKGRAY, DARKGRAY, DARKGRAY, DARKGRAY, Vector3(-0.5f, -1, -0.5f), 1, 0.5 };
 
 	RaytracingMaterial red = { Vector4(1,1,1,1), Vector4(1,0,0,10), Vector4(0,0,0,0) };
 	RaytracingMaterial red2 = { Vector4(1,0.6f,0.6f,0), Vector4(0,0,0,0), Vector4(0,0,0,0) };
@@ -35,10 +35,18 @@ int main()
 	RaytracingMaterial blue = { Vector4(1,1,1,1), Vector4(0,1,0,10), Vector4(0,0,0,0) };
 	RaytracingMaterial white = { Vector4(1,1,1,1), Vector4(0,0,0,0), Vector4(0,0,0,0) };
 	RaytracingMaterial grey = { Vector4(0.5f,0.5f,0.5f,1), Vector4(0,0,0,0), Vector4(0,0,0,0) };
-	RaytracingMaterial light = { Vector4(1,0.8f,0.7f,1), Vector4(1,1,1,1.2f), Vector4(0,0,0,0) };
+	RaytracingMaterial light = { Vector4(1,0.6f,0.6f,1), Vector4(1,0.8,0.6,1.5), Vector4(0,0,0,0) };
 	RaytracingMaterial metal = { Vector4(1,1,1,1), Vector4(0,0,0,0), Vector4(0,1,0,0) };
 
 	TracingEngine::gravityBodies.push_back({ {0,5,0,10} });
+
+	Model model = LoadModel("resources/meshes/monkey.obj");
+	model.transform = MatrixTranslate(0, 3, 0);
+	TracingEngine::UploadRaylibModel(model, red2, false, 8);
+
+	Model ring = LoadModelFromMesh(GenMeshTorus(1, 4.0f, 16, 32));
+	ring.transform = MatrixScale(1, 1, 0.1f) * MatrixRotateX(PI / 2) * MatrixTranslate(0, 5, 0);
+	TracingEngine::UploadRaylibModel(ring, light, false, 10);
 
 	TracingEngine::UploadStaticData();
 
@@ -57,6 +65,10 @@ int main()
 
 		deltaTime += GetFrameTime();
 	}
+
+	UnloadModel(model);
+	UnloadModel(ring);
+
 	TracingEngine::Unload();
 
 	CloseWindow();
